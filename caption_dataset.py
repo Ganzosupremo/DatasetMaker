@@ -11,7 +11,7 @@ class DatasetTagger:
         self.show_tags_event = show_tags_event
     
     def caption_photo_images(self, train_data_dir:str, caption_weights:str="",batch_size:str="8",
-                             max_length:int=75,min_length:int=10,beam_search:bool=True,
+                             max_length:str="75",min_length:str="10",beam_search:bool=True,
                              debug:bool=False,recursive:bool=False) -> None:
         # Construct the command to run the script
         script_path = os.path.join("sd-scripts", "finetune", "make_captions.py")
@@ -26,8 +26,8 @@ class DatasetTagger:
             "--caption_weights", caption_weights,
             "--batch_size", str(batch_size),
             "--max_data_loader_n_workers", str(workers),
-            "--max_length", str(max_length),
-            "--min_length", str(min_length)
+            "--max_length", max_length,
+            "--min_length", min_length
         ]
 
         # Add optional arguments based on the flags
@@ -103,7 +103,7 @@ class DatasetTagger:
                 complete_message += f"{tag}: {count}\n"
             
             self.show_tags_event.emit(complete_message)
-            self.event.emit("Done!")
+            self.event.emit("Done, your Dataset was successfully captioned!")
         except Exception as e:
             self.event.emit(f"Failed the post-processing of dataset tags:\n{e}")
 

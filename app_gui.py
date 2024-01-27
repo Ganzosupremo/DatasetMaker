@@ -36,7 +36,7 @@ class MainApp(ctk.CTk):
         
         self.title("Dataset Maker")
         self.geometry("1024x768")
-        self.iconbitmap('C:\\Users\\Denzel\\PycharmProjects\\DatasetMaker\\icon.ico')
+        self.iconbitmap("D:\PythonProjects\DatasetMaker\icon.ico")
         title_font = ctk.CTkFont("The Bold Font", size=34)
         normal_font = ctk.CTkFont("Times New Roman", size=17, weight='normal',slant='roman')
         
@@ -44,7 +44,7 @@ class MainApp(ctk.CTk):
         self.status_label.pack(pady=5, side="bottom")
         
         note_text = ctk.CTkLabel(self, font=normal_font, text="Once a button is pressed, the app may freeze.\n"
-                         "Don't worry all the proccessing is happening in the bakcground, just wait patiently for the process to complete...")
+                         "Don't worry all the proccessing is happening in the background, just wait patiently for the process to complete...")
         note_text.pack(pady=10, side='bottom')
         
         # Create a Notebook (Tab control)
@@ -126,7 +126,7 @@ class ProjectSetupTab(ctk.CTkFrame):
             project_subfolder = project_parts[1] if len(project_parts) > 1 else None
 
             # Determine the base directory based on the folder structure option
-            base_dir = os.path.expanduser(f"~/Pictures/Loras")
+            base_dir = os.path.expanduser(f"~\\Pictures\\Loras")
 
             # Create the main project directory
             project_dir = os.path.join(base_dir, project_base)
@@ -369,7 +369,8 @@ class ScrollableTagImagesTab(ctk.CTkScrollableFrame):
         dataset_tagger = DatasetTagger(event=self.event, show_tags_event=self.show_tags_event)
         tagging_option = self.tagging_options_menu.get()
         if tagging_option == "Photo Captions":
-            self.run_photo_captions(train_data_dir=dataset_dir, tagger= dataset_tagger)
+            self.run_photo_captions(train_data_dir=dataset_dir, tagger= dataset_tagger,
+                                    max_length=self.max_length_entry.get(), min_length=self.min_length_entry.get())
         else:
             await self.run_anime_tagging(train_data_dir=dataset_dir, tagger=dataset_tagger, 
                                 threshold=self.tag_threshold_entry.get(),
@@ -384,8 +385,8 @@ class ScrollableTagImagesTab(ctk.CTkScrollableFrame):
                                     blacklist_tags=blacklist_tags,
                                     tags_to_show=tags_to_show)
 
-    def run_photo_captions(self, tagger: DatasetTagger, train_data_dir, caption_weights="", batch_size=8, max_length=75, min_length=10,
-                        beam_search=False, debug=False, recursive=False):
+    def run_photo_captions(self, tagger: DatasetTagger, train_data_dir, caption_weights="", batch_size:str="8", max_length:str="75", min_length:str="10",
+                        beam_search=True, debug=False, recursive=False):
         tagger.caption_photo_images(train_data_dir, caption_weights=caption_weights,batch_size=batch_size,
                             max_length=max_length, min_length=min_length,recursive=recursive, beam_search=beam_search, debug=debug)
     
