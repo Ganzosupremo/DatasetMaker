@@ -154,3 +154,7 @@ cython_debug/
 # wd14 tagger model
 /wd14_tagger_model
 /sd-scripts
+/dist
+/build
+/main.build
+/main.dist
