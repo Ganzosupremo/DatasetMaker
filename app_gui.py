@@ -152,18 +152,16 @@ class ProjectSetupTab(ctk.CTkFrame):
         
 
 class ScrapeImagesTab(ctk.CTkFrame):
-    tags_entry: ctk.CTkEntry
     def __init__(self, master: Any, event:Event,width: int = 200, height: int = 200, corner_radius: int | str | None = None, border_width: int | str | None = None, bg_color: str | Tuple[str, str] = "transparent", fg_color: str | Tuple[str, str] | None = None, border_color: str | Tuple[str, str] | None = None, background_corner_colors: Tuple[str | Tuple[str, str]] | None = None, overwrite_preferred_drawing_method: str | None = None, **kwargs):
-        global tags_entry
         super().__init__(master, width, height, corner_radius, border_width, bg_color, fg_color, border_color, background_corner_colors, overwrite_preferred_drawing_method, **kwargs)
         ctk.CTkLabel(master, text="Image Scraping",font=title_font).pack(pady=15, expand=True, fill="both")
-        text:str = "We will grab images from the popular anime gallery Gelbooru. Images are sorted by tags, including poses, scenes, character traits, character names, artists, etc.\nIf you instead want to use your own images, upload them to Pictures/Loras/project_name/dataset folder.\nUp to 1000 images may be downloaded by this step in just one minute. Remember, with great power, comes great responsability.\n\nYour target tags should include the relevant tags for your character/concept/artstyle, and exclude undesired tags (for example, explicit images may affect learning).\nSeparate words with underscores, separate tags with spaces, and use - to exclude a tag. You can also include a minimum score: score:>10"
+        text:str = "We will grab images from the popular anime gallery Gelbooru.\nImages are sorted by tags, including poses, scenes, character traits, character names, artists, etc.\nIf you instead want to use your own images, upload them to Pictures/Loras/project_name/dataset folder.\nUp to 1000 images may be downloaded by this step in just one minute. Remember, with great power, comes great responsability.\n\nYour target tags should include the relevant tags for your character/concept/artstyle, and exclude undesired tags (for example, explicit images may affect learning).\nSeparate words with underscores, separate tags with spaces, and use - to exclude a tag. You can also include a minimum score: score:>10"
 
         self.event:Event = event
         ctk.CTkLabel(master, text=text,height=32,font=normal_font, compound="left").pack(pady=20, expand=True)
-        tags_entry = ctk.CTkEntry(master, placeholder_text='Enter your desired tags here...', width=250, height=32, 
+        self.tags_entry = ctk.CTkEntry(master, placeholder_text='Enter your desired tags here...', width=250, height=32, 
                                 corner_radius=10, border_width=2, border_color='green', font=normal_font)
-        tags_entry.pack(pady=5)
+        self.tags_entry.pack(pady=5)
         scrape_button = ctk.CTkButton(master, text="Scrape Images",width=200, corner_radius=10, border_color='green',
                                     border_width=2,font=normal_font, command=self.on_scrape_button_clicked)
         scrape_button.pack(pady=5)
@@ -178,10 +176,8 @@ class ScrapeImagesTab(ctk.CTkFrame):
             return
         try:
             self.event.emit("Starting to fetch the images with desired tags...")
-            await asyncio.sleep(3)
             scraper = ImageScraper(event=self.event)
-            total_images = await scraper.scrape_images(tags=tags_entry.get(),dataset_dir=dataset_dir)
-            self.event.emit(text=f"Downloaded {total_images} images.")
+            await scraper.scrape_images(tags=self.tags_entry.get(),dataset_dir=dataset_dir)
         except Exception as e:
             self.event.emit(f"Failed to scrape images from Gelbooru:\n{e}")
         
@@ -230,7 +226,7 @@ class CurateImagesTab(ctk.CTkFrame):
     def end_curation(self) -> None:
         try:
             curate_images = CurateImages(event=self.event)
-            curate_images.end_curation()
+            curate_images.end_curation(dataset_dir=dataset_dir)
         except Exception as e:
             self.event.emit(text=f"Error ending curation: {e}")
              
@@ -339,7 +335,7 @@ class ScrollableTagImagesTab(ctk.CTkScrollableFrame):
         child_first_frame.pack(padx=10, expand=True, fill="x")
         
         self.force_download_checkbox = ctk.CTkCheckBox(master=child_first_frame,
-                                                       text="Force Download",
+                                                       text="Force Download of Tagging Model",
                                                        font=normal_font,
                                                        corner_radius=10)
         self.force_download_checkbox.pack(pady=5)

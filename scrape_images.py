@@ -36,6 +36,8 @@ class ImageScraper:
             print("No results found")
             return
 
+        self.event.emit(f"Found {count} images...")
+        print(f"Found {count} images...")
         image_urls = set()
         image_urls.update(filter_images(data))
         for i in range(total_limit // 100):
@@ -43,7 +45,7 @@ class ImageScraper:
             if count <= 0:
                 break
 
-            await asyncio.sleep(0.3)
+            await asyncio.sleep(0.2)
             image_urls.update(filter_images(get_json(url + f"&pid={i + 1}")))
 
         # Create a list of coroutine objects for downloading images
@@ -51,14 +53,18 @@ class ImageScraper:
         download_tasks = []
         for i, url in enumerate(image_urls):
             if url.strip():
-                download_tasks.append(self.download_image(url.strip(), i + 1, total_images, dataset_dir))
+                download_tasks.append(self.download_image(url=url.strip(), dataset_dir=dataset_dir,current=i))
 
         # Run the download tasks concurrently
+        self.event.emit("Starting the download of images in 8 seconds...")
+        print("Starting the download of images in 8 seconds...")
+        await asyncio.sleep(8.0)
         await asyncio.gather(*download_tasks)
+        self.event.emit(f"Done Scrapping Images to {dataset_dir}.\n Downloaded a total of {total_images} images.")
         return total_images
 
     
-    async def download_image(self, url, current, total, dataset_dir):
+    async def download_image(self, url:str, dataset_dir:str, current:int=0):
         async with semaphore:
             if not url:
                 self.event.emit("Empty URL, skipping")
@@ -69,7 +75,7 @@ class ImageScraper:
                 image_name = url.split("/")[-1]
                 with open(os.path.join(dataset_dir, image_name), 'wb') as f:
                     f.write(response.content)
-                self.event.emit(f"Done Scrapping Images to {dataset_dir}.\n Downloaded a total of {total} images.")
+                    print(f"Downloaded: {current}: {image_name}.")
             except requests.RequestException as e:
                 self.event.emit(f"Failed to download {url}: {e}")
     

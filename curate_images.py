@@ -1,5 +1,6 @@
 import os
 import shutil
+import time
 
 import numpy as np
 import fiftyone as fo
@@ -10,6 +11,9 @@ from event import Event
 
 dataset: fo.Dataset
 session: fo.Session
+
+
+FIFTYONE_DATABASE_URI='mongodb://localhost:27017/DatasetMakerDB'
 
 class CurateImages:
     def __init__(self, event):
@@ -35,12 +39,34 @@ class CurateImages:
             return
         else:
             self.event.emit("\n💿 Analyzing dataset...\n")
+            print("\n💿 Analyzing dataset...\n")
             dataset = fo.Dataset.from_images_dir(dataset_dir)
             model = foz.load_zoo_model(model_name)
+            
+            # embeddings = dataset.compute_embeddings(model, batch_size=batch_size)
+            # print(embeddings.shape)
+
+            # # Compute similarity matrices for each batch separately
+            # similarity_matrix = np.zeros((len(embeddings), len(embeddings)))
+
+            # for i in range(0, len(embeddings), batch_size):
+            #     print(np.isnan(i).any())
+            #     batch_end = min(i + batch_size, len(embeddings))
+            #     batch_embeddings = embeddings[i:batch_end]
+            #     batch_similarity = cosine_similarity(batch_embeddings)
+            #     similarity_matrix[i:batch_end, i:batch_end] = batch_similarity
+
+            # # Subtract the identity matrix to ignore self-similarity
+            # np.fill_diagonal(similarity_matrix, 0)
+    
             embeddings = dataset.compute_embeddings(model, batch_size=batch_size)
+            print(embeddings)
 
             batch_embeddings = np.array_split(embeddings, batch_size)
-            similarity_matrices = []
+            similarity_matrices = np.zeros((len(embeddings), len(embeddings)))
+            
+            
+            
             max_size_x = max(array.shape[0] for array in batch_embeddings)
             max_size_y = max(array.shape[1] for array in batch_embeddings)
 
@@ -57,6 +83,19 @@ class CurateImages:
             similarity_matrix = cosine_similarity(embeddings)
             similarity_matrix -= np.identity(len(similarity_matrix))
 
+            
+            # for start_idx in range(0, len(embeddings), batch_size):
+            #     end_idx = min(start_idx + batch_size, len(embeddings))
+            #     batch_embeddings = embeddings[start_idx:end_idx]
+            #     # Compute cosine similarity for the batch
+            #     batch_similarity = cosine_similarity(batch_embeddings)
+            #     # Place the result in the full matrix
+            #     similarity_matrix[start_idx:end_idx, start_idx:end_idx] = batch_similarity
+
+            # # Subtract the identity matrix to ignore self-similarity
+            # np.fill_diagonal(similarity_matrix, 0)
+            
+            
             dataset.match(F("max_similarity") > sim_threshold)
             dataset.tags = ["delete", "has_duplicates"]
 
@@ -85,14 +124,17 @@ class CurateImages:
             for group in sidebar_groups[1:]:
                 group.expanded = False
             dataset.app_config.sidebar_groups = sidebar_groups
+            fo.config.database_uri = FIFTYONE_DATABASE_URI
             dataset.save()
-            session = fo.launch_app(dataset)
+            session = fo.launch_app(dataset, desktop=False)
             self.event.emit(f"Session launched:\n{session}")
+            print(f"Session launched:\n{session}")
 
 
     def end_curation(self, dataset_dir:str):
         try:
             if session:
+                print("Ending session and deleting samples...")
                 # Remove samples tagged for deletion
                 marked = [s for s in dataset if "delete" in s.tags]
                 dataset.remove_samples(marked)
@@ -103,7 +145,9 @@ class CurateImages:
                 dataset.export(export_dir=temp_export_dir, dataset_type=fo.types.ImageDirectory)
 
                 session.refresh()
-                fo.close_app()
+                session.close()
+                
+                time.sleep(2.2)
 
                 # Remove the original directory
                 if os.path.exists(dataset_dir):
@@ -112,5 +156,6 @@ class CurateImages:
                 os.rename(temp_export_dir, dataset_dir)
 
                 self.event.emit(f"Removed {len(marked)} images from dataset. You now have {len(os.listdir(dataset_dir))} images.")
+                print(f"Removed {len(marked)} images from dataset. You now have {len(os.listdir(dataset_dir))} images.")
         except Exception as e:
             self.event.emit(f"Error ending curation: {e}")
