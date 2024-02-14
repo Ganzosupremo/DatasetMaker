@@ -47,8 +47,6 @@ class ImageScraper:
             count -= 100
             if count <= 0:
                 break
-
-            await asyncio.sleep(0.2)
             image_urls.update(filter_images(get_json(url + f"&pid={i + 1}")))
 
         # Create a list of coroutine objects for downloading images
@@ -72,6 +70,7 @@ class ImageScraper:
         async with semaphore:
             if not url:
                 self.event.emit("Empty URL, skipping")
+                print("Empty URL, skipping")
                 return
             try:
                 response = requests.get(url)
@@ -81,6 +80,7 @@ class ImageScraper:
                     f.write(response.content)
                     print(f"Downloaded: {current}: {image_name}.")
             except requests.RequestException as e:
-                self.event.emit(f"Failed to download {url}: {e}")
+                self.event.emit(f"Failed to download {url}:\n{e}")
+                print(f"Failed to download {url}:\n{e}")
     
     

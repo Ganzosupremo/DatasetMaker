@@ -161,8 +161,8 @@ class ScrapeImagesTab(ctk.CTkFrame):
         ctk.CTkLabel(master, text=text,height=32,font=normal_font, compound="left").pack(pady=20, expand=True)
         self.tags_entry = ctk.CTkEntry(master, 
                                        placeholder_text='Enter your desired tags here...', 
-                                       width=350,
-                                       height=32,
+                                       width=450,
+                                       height=35,
                                        corner_radius=10,
                                        border_width=2,
                                        border_color='green',
@@ -171,8 +171,8 @@ class ScrapeImagesTab(ctk.CTkFrame):
         
         self.total_image_limit_entry = ctk.CTkEntry(master=master,
                                                     placeholder_text="Defines the max total of images to be downloaded at once. Default is 800",
-                                                    width=350,
-                                                    height=30,
+                                                    width=450,
+                                                    height=35,
                                                     corner_radius=10,
                                                     border_width=2,
                                                     border_color='green',
@@ -180,7 +180,9 @@ class ScrapeImagesTab(ctk.CTkFrame):
         self.total_image_limit_entry.pack(pady=5)
         
         scrape_button = ctk.CTkButton(master, text="Scrape Images",
-                                      width=250, corner_radius=10, 
+                                      width=300,
+                                      height=32,
+                                      corner_radius=10, 
                                       border_color='green',
                                       border_width=2,
                                       font=normal_font, 
@@ -201,6 +203,7 @@ class ScrapeImagesTab(ctk.CTkFrame):
             await scraper.scrape_images(tags=self.tags_entry.get(),dataset_dir=dataset_dir, total_image_limit=self.total_image_limit_entry.get())
         except Exception as e:
             self.event.emit(f"Failed to scrape images from Gelbooru:\n{e}")
+            print(f"Failed to scrape images from Gelbooru:\n{e}")
         
             
 class CurateImagesTab(ctk.CTkFrame):
@@ -243,6 +246,7 @@ class CurateImagesTab(ctk.CTkFrame):
             curate_images.start_curating(dataset_dir=dataset_dir, sim_threshold=self.sim_slider.get())
         except Exception as e:
             self.event.emit(text=f"Error during curation: {e}")
+            print(f"Error ending curation: {e}")
 
 
     def end_curation(self) -> None:
@@ -252,6 +256,7 @@ class CurateImagesTab(ctk.CTkFrame):
             # curate_images.finish_curating(images_folder=dataset_base_dir, project_subfolder=project_subfolder)
         except Exception as e:
             self.event.emit(text=f"Error ending curation: {e}")
+            print(f"Error ending curation: {e}")
              
              
     def similarity_slider(self, value):

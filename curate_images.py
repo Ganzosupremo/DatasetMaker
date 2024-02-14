@@ -1,5 +1,6 @@
 import os
 import shutil
+import time
 
 import numpy as np
 import fiftyone as fo
@@ -133,15 +134,16 @@ class CurateImages:
         dataset.remove_samples(marked)
         
         temp_suffix = "_temp"
-        temp_subfolder = f"{project_subfolder}{temp_suffix}"
+        temp_subfolder = f"{images_folder}{temp_suffix}"
+        os.makedirs(temp_subfolder)
         
-        dataset.export(export_dir=os.path.join(images_folder, temp_subfolder), dataset_type=fo.types.ImageDirectory)
+        dataset.export(export_dir=temp_subfolder, dataset_type=fo.types.ImageDirectory)
 
         
         # Renaming and moving directories with os and shutil
         # temp_dir = f"{project_subfolder}{temp_suffix}"
-        os.rename(project_subfolder, temp_subfolder)
-        shutil.move(os.path.join(images_folder, temp_subfolder), images_folder)
+        # os.rename(project_subfolder, temp_subfolder)
+        shutil.move(temp_subfolder, images_folder)
         shutil.rmtree(temp_subfolder)
 
         session.refresh()
@@ -153,26 +155,72 @@ class CurateImages:
     
     
     def end_curation(self, dataset_dir:str, project_subfolder:str) -> None:
+        def move_curated_dataset(dataset_dir:str, temp_dir:str):
+            # Delete the contents of the original directory
+            for filename in os.listdir(dataset_dir):
+                file_path = os.path.join(dataset_dir, filename)
+                if os.path.isfile(file_path) or os.path.islink(file_path):
+                    os.unlink(file_path)
+                elif os.path.isdir(file_path):
+                    shutil.rmtree(file_path)
+            
+            # Move contents from the temp directory to the original directory
+            for filename in os.listdir(temp_dir):
+                shutil.move(os.path.join(temp_dir, filename), dataset_dir)
+
+            # Remove the now empty temp directory
+            shutil.rmtree(temp_dir)
+        
         if session:
             print("Ending session and deleting samples...")
             # Remove samples tagged for deletion
             marked = [s for s in dataset if "delete" in s.tags]
             dataset.remove_samples(marked)
-
-            # Export the curated dataset to a temporary directory
-        
-            temp_suffix = "_temp"
-            temp_subfolder = f"{dataset_dir}{temp_suffix}"
             
-            dataset.export(export_dir=temp_subfolder, dataset_type=fo.types.ImageDirectory)
-
-            # Remove the original directory
-            if os.path.exists(project_subfolder):
-                shutil.rmtree(project_subfolder)
-            os.rename(temp_subfolder, project_subfolder)
+            # Define the temporary and original directory paths
+            original_dir = dataset_dir
+            temp_dir = f"{original_dir}_temp"
             
-            session.refresh()
+            # Ensure the temporary directory exists
+            os.makedirs(temp_dir, exist_ok=True)
+            
+            # Export the curated dataset to the temporary directory
+            dataset.export(export_dir=temp_dir, dataset_type=fo.types.ImageDirectory)
+            
+            # Clear the dataset and close the session
+            dataset.clear()
+            session.close()
             fo.close_app()
             
+            
+            move_curated_dataset(dataset_dir=original_dir, temp_dir=temp_dir)
+            # # Wait a bit for all file handles to be released
+            # time.sleep(5)
+            
+            # # Remove the original directory and rename the temporary one
+            # os.rename(original_dir, f"{original_dir}__")
+            # os.rename(temp_dir, original_dir)
+
+            # time.sleep(5)
+            
+            # shutil.rmtree(original_dir)
+            
+            # # Export the curated dataset to a temporary directory
+            # temp_suffix = "_temp"
+            # temp_dir = f"{dataset_dir}{temp_suffix}"
+            # os.makedirs(temp_dir, exist_ok=True)
+            
+            # dataset.export(export_dir=temp_dir, dataset_type=fo.types.ImageDirectory)
+            # dataset.clear()
+            
+            # session.close()
+            # fo.close_app()
+            
+            # time.sleep(5)
+            
+            # # Remove the original dataset directory and rename the temporary one
+            # shutil.rmtree(dataset_dir)  # Remove original directory
+            # os.rename(temp_dir, dataset_dir)  # Rename temp back to dataset dir
+
             self.event.emit(f"Removed {len(marked)} images from dataset. You now have {len(os.listdir(dataset_dir))} images.")
             print(f"Removed {len(marked)} images from dataset. You now have {len(os.listdir(dataset_dir))} images.")
