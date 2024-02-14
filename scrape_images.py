@@ -3,7 +3,6 @@ import requests
 import os
 from event import Event
 
-
 max_resolution:int = 3072
 semaphore = asyncio.Semaphore(10)
 
@@ -12,11 +11,15 @@ class ImageScraper:
         self.event: Event = event
     
     
-    async def scrape_images(self, tags:str, dataset_dir:str, include_posts_with_parent:bool=True) -> int:
+    async def scrape_images(self, tags:str, dataset_dir:str, include_posts_with_parent:bool=True, total_image_limit:str="800") -> int:
         tags = tags.replace(" ", "+").replace("(", "%28").replace(")", "%29").replace(":", "%3a").replace("&", "%26")
         url = f"https://gelbooru.com/index.php?page=dapi&json=1&s=post&q=index&limit=100&tags={tags}"
         user_agent = "Mozilla/5.0 AppleWebKit/537.36 (KHTML, like Gecko; compatible; Googlebot/2.1; +http://www.google.com/bot.html) Chrome/93.0.4577.83 Safari/537.36"
-        total_limit = 1000
+        
+        total_limit:int = 800
+        if total_image_limit != "":
+            total_limit:int = int(total_image_limit)
+        
         supported_types = (".png", ".jpg", ".jpeg")
 
         def get_json(_url):
@@ -56,11 +59,12 @@ class ImageScraper:
                 download_tasks.append(self.download_image(url=url.strip(), dataset_dir=dataset_dir,current=i))
 
         # Run the download tasks concurrently
-        self.event.emit("Starting the download of images in 8 seconds...")
-        print("Starting the download of images in 8 seconds...")
-        await asyncio.sleep(8.0)
+        self.event.emit(f"Downloading {total_images} images in 5 seconds...")
+        print(f"Downloading {total_images} images in 5 seconds...")
+        await asyncio.sleep(5.0)
         await asyncio.gather(*download_tasks)
-        self.event.emit(f"Done Scrapping Images to {dataset_dir}.\n Downloaded a total of {total_images} images.")
+        self.event.emit(f"Done scrapping images to {dataset_dir}.\n Downloaded a total of {total_images} images.")
+        print(f"Done scrapping images to {dataset_dir}.\n Downloaded a total of {total_images} images.")
         return total_images
 
     

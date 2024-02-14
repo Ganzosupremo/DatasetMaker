@@ -1,5 +1,5 @@
 import asyncio
-from typing import Any, Literal, Optional, Tuple, Union
+from typing import Any, Literal, Tuple
 from typing_extensions import Literal
 import customtkinter as ctk
 import os
@@ -19,9 +19,9 @@ title_font: ctk.CTkFont
 normal_font: ctk.CTkFont
 status_label: ctk.CTkLabel
 
-project_dir: str
-config_dir: str
 dataset_dir: str
+dataset_base_dir: str
+project_subfolder:str
 step1_completed: bool = False
 
 class MainApp(ctk.CTk):
@@ -88,20 +88,18 @@ class MainApp(ctk.CTk):
 
 
 class ProjectSetupTab(ctk.CTkFrame):
-    project_name_entry: ctk.CTkEntry
-    
     def __init__(self, master: Any, event:Event, width: int = 200, height: int = 200, corner_radius: int | str | None = None, border_width: int | str | None = None, bg_color: str | Tuple[str, str] = "transparent", fg_color: str | Tuple[str, str] | None = None, border_color: str | Tuple[str, str] | None = None, background_corner_colors: Tuple[str | Tuple[str, str]] | None = None, overwrite_preferred_drawing_method: str | None = None, **kwargs):
-        global project_name_entry
         super().__init__(master, width, height, corner_radius, border_width, bg_color, fg_color, border_color, background_corner_colors, overwrite_preferred_drawing_method, **kwargs)
 
         self.event = event
+        self.dataset_base_dir:str = ""
         ctk.CTkLabel(master, text="Project Setup", font=title_font).pack(pady=15, expand=True, fill="both")
         ctk.CTkLabel(master, font=normal_font, text="Welcome! This app is a modified version of the Dataset Maker by Hollowstrawberry."
                     "\nThis app is designed to run on the local machine instead of Google Drive, for the ones that do not like working with Drive.\n"
                     "Let's begin at the beginning, set up the name of your project, the app will save the project on your Pictures directory under a folder called 'Loras'.").pack(pady=10, expand=True, fill="both")
 
-        project_name_entry = ctk.CTkEntry(master, font=normal_font, width=250, height=36, corner_radius=10, border_color='green', border_width=2, placeholder_text="Project Name")
-        project_name_entry.pack(pady=5)
+        self.project_name_entry = ctk.CTkEntry(master, font=normal_font, width=250, height=36, corner_radius=10, border_color='green', border_width=2, placeholder_text="Project Name")
+        self.project_name_entry.pack(pady=5)
 
         folder_structure_options = ["Organize by project", "Organize by category"]
         folder_structure_optionmenu = ctk.CTkOptionMenu(master, font=normal_font, width=250, height=36, corner_radius=10,values=folder_structure_options)
@@ -111,9 +109,9 @@ class ProjectSetupTab(ctk.CTkFrame):
         setup_button.pack(pady=30)
     
     def setup_project(self):
-        global project_dir, config_dir, dataset_dir, step1_completed
+        global dataset_base_dir, project_subfolder, dataset_dir, step1_completed
         try:
-            project_input = project_name_entry.get()
+            project_input = self.project_name_entry.get()
 
             # Basic validation for project input
             if not project_input or any(c in project_input for c in " .()\"'"):
@@ -133,7 +131,7 @@ class ProjectSetupTab(ctk.CTkFrame):
             os.makedirs(project_dir, exist_ok=True)
 
             # Create the 'config' directory in the main project directory
-            config_dir = os.path.join(project_dir, "config")
+            config_dir = os.path.join(project_dir, "Config")
             os.makedirs(config_dir, exist_ok=True)
 
             # Create the 'datasets' directory and subfolder if specified
@@ -146,9 +144,11 @@ class ProjectSetupTab(ctk.CTkFrame):
             os.makedirs(dataset_dir, exist_ok=True)
 
             self.event.emit(text=f"Project setup completed at {dataset_dir}")
+            print(f"Project setup completed at {dataset_dir}")
             step1_completed = True
         except Exception as e:
             self.event.emit(text=f"Failed to create directory:\n {e}")
+            print(f"Failed to create directory:\n {e}")
         
 
 class ScrapeImagesTab(ctk.CTkFrame):
@@ -159,11 +159,32 @@ class ScrapeImagesTab(ctk.CTkFrame):
 
         self.event:Event = event
         ctk.CTkLabel(master, text=text,height=32,font=normal_font, compound="left").pack(pady=20, expand=True)
-        self.tags_entry = ctk.CTkEntry(master, placeholder_text='Enter your desired tags here...', width=250, height=32, 
-                                corner_radius=10, border_width=2, border_color='green', font=normal_font)
+        self.tags_entry = ctk.CTkEntry(master, 
+                                       placeholder_text='Enter your desired tags here...', 
+                                       width=350,
+                                       height=32,
+                                       corner_radius=10,
+                                       border_width=2,
+                                       border_color='green',
+                                       font=normal_font)
         self.tags_entry.pack(pady=5)
-        scrape_button = ctk.CTkButton(master, text="Scrape Images",width=200, corner_radius=10, border_color='green',
-                                    border_width=2,font=normal_font, command=self.on_scrape_button_clicked)
+        
+        self.total_image_limit_entry = ctk.CTkEntry(master=master,
+                                                    placeholder_text="Defines the max total of images to be downloaded at once. Default is 800",
+                                                    width=350,
+                                                    height=30,
+                                                    corner_radius=10,
+                                                    border_width=2,
+                                                    border_color='green',
+                                                    font=normal_font)
+        self.total_image_limit_entry.pack(pady=5)
+        
+        scrape_button = ctk.CTkButton(master, text="Scrape Images",
+                                      width=250, corner_radius=10, 
+                                      border_color='green',
+                                      border_width=2,
+                                      font=normal_font, 
+                                      command=self.on_scrape_button_clicked)
         scrape_button.pack(pady=5)
     
     
@@ -177,7 +198,7 @@ class ScrapeImagesTab(ctk.CTkFrame):
         try:
             self.event.emit("Starting to fetch the images with desired tags...")
             scraper = ImageScraper(event=self.event)
-            await scraper.scrape_images(tags=self.tags_entry.get(),dataset_dir=dataset_dir)
+            await scraper.scrape_images(tags=self.tags_entry.get(),dataset_dir=dataset_dir, total_image_limit=self.total_image_limit_entry.get())
         except Exception as e:
             self.event.emit(f"Failed to scrape images from Gelbooru:\n{e}")
         
@@ -192,6 +213,7 @@ class CurateImagesTab(ctk.CTkFrame):
         
         self.event: Event = event
         self.set_sim_frame()
+        
         
         ctk.CTkButton(self, corner_radius=10, border_width=1, border_color='green', text="Curate Images",
               command=self.curate_images).pack(pady=10)
@@ -226,7 +248,8 @@ class CurateImagesTab(ctk.CTkFrame):
     def end_curation(self) -> None:
         try:
             curate_images = CurateImages(event=self.event)
-            curate_images.end_curation(dataset_dir=dataset_dir)
+            curate_images.end_curation(dataset_dir=dataset_dir, project_subfolder=project_subfolder)
+            # curate_images.finish_curating(images_folder=dataset_base_dir, project_subfolder=project_subfolder)
         except Exception as e:
             self.event.emit(text=f"Error ending curation: {e}")
              
