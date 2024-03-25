@@ -9,11 +9,11 @@ class ExtrasDataset:
         self.event = event
         self.top_tags_event = top_tags_event
     
-    def analyze_tags(self, images_folder:str, show_top_tags:str="50"):
-        if show_top_tags == "":
-            show_top_tags = "50"
+    def analyze_tags(self, images_folder:str, show_top_tags_text:str="50"):
+        if show_top_tags_text == "":
+            show_top_tags_text = "50"
             
-        top_tags_int:int = int(show_top_tags)
+        top_tags_int:int = int(show_top_tags_text)
         top_tags = Counter()
 
         for txt_file in [f for f in os.listdir(images_folder) if f.lower().endswith(".txt")]:
@@ -21,14 +21,19 @@ class ExtrasDataset:
                 tags = [tag.strip() for tag in file.read().split(",")]
                 top_tags.update(tags)
 
-        self.event.emit(f"📊 Top {show_top_tags} tags:")
         complete_message = ""
-        for tag, count in top_tags.most_common(top_tags_int):
-            complete_message += f"{tag}: {count}\n"
+        if show_top_tags_text == "0":
+            for tag, count in top_tags.most_common(None):
+                complete_message += f"{tag}: {count}\n"
+            self.event.emit(f"📊 Showing all tags")
+        else:
+            for tag, count in top_tags.most_common(top_tags_int):
+                complete_message += f"{tag}: {count}\n"
+            self.event.emit(f"📊 Top {show_top_tags_text} tags")
+            
         
         self.top_tags_event.emit(complete_message)
         
-
     def delete_non_image_files(self, images_folder:str):
         # List all files in the folder
         all_files = glob.glob(os.path.join(images_folder, '*'))

@@ -37,7 +37,7 @@ class ImageScraper:
 
         if count == 0:
             print("No results found")
-            return
+            return -1
 
         self.event.emit(f"Found {count} images...")
         print(f"Found {count} images...")

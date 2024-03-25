@@ -1,0 +1,15 @@
+accelerate
+numpy
+asyncio
+customtkinter
+fiftyone
+scikit-learn
+requests
+# huggingface_hub
+# PIL
+# cv2
+torch
+torchvision
+transformers
+diffusers
+safetensors

@@ -13,6 +13,7 @@ class DatasetTagger:
     def caption_photo_images(self, train_data_dir:str, caption_weights:str="",batch_size:str="8",
                              max_length:str="75",min_length:str="10",beam_search:bool=True,
                              debug:bool=False,recursive:bool=False) -> None:
+        
         # Construct the command to run the script
         script_path = os.path.join("sd-scripts", "finetune", "make_captions.py")
 
@@ -50,26 +51,30 @@ class DatasetTagger:
                              tag_threshold:float=0.35) -> None:
         
         script_path = os.path.join("sd-scripts","finetune", "tag_images_by_wd14_tagger.py")
+        print(script_path)
         
         if batch_size == "":
             batch_size = "8"
         
-        workers = 2
+        workers = "2"
         
         command = [
         "python", script_path, train_data_dir,
+        "train_data_dir", train_data_dir,
         "--batch_size", batch_size,
-        "--max_data_loader_n_workers", str(workers),
+        "--max_data_loader_n_workers", workers,
         "--caption_extention", caption_extension,
         "--thresh", str(tag_threshold),
         ]
+        
+        command.append("--remove_underscore")
         
         if force_download:
             command.append("--force_download")
         
         subprocess.run(command, check=True)
         
-        await asyncio.sleep(6)
+        await asyncio.sleep(5)
         
         self.remove_underscore_and_blacklisted_tags(images_folder=train_data_dir,tags_to_show=tags_to_show,blacklist_tags=blacklist_tags)
     
@@ -96,10 +101,10 @@ class DatasetTagger:
                     file.write(", ".join(tags))
         
             # Display the top tags
-            tags_to_show = int(tags_to_show)
+            number_tags = int(tags_to_show)
             
             complete_message = ""
-            for tag, count in top_tags.most_common(tags_to_show):
+            for tag, count in top_tags.most_common(number_tags):
                 complete_message += f"{tag}: {count}\n"
             
             self.show_tags_event.emit(complete_message)

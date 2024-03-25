@@ -28,15 +28,13 @@ class MainApp(ctk.CTk):
     def __init__(self) -> None:
         global title_font, normal_font
         super().__init__()
-        
-        self.configure_grid()
-        
+               
         status_update_event = Event()
         status_update_event.subscribe(self.update_status_label)
         
         self.title("Dataset Maker")
         self.geometry("1024x768")
-        self.iconbitmap("D:\PythonProjects\DatasetMaker\icon.ico")
+        self.iconbitmap(f"D:\\PythonProjects\\DatasetMaker\\icon.ico")
         title_font = ctk.CTkFont("The Bold Font", size=34)
         normal_font = ctk.CTkFont("Times New Roman", size=17, weight='normal',slant='roman')
         
@@ -72,16 +70,6 @@ class MainApp(ctk.CTk):
         curate_tags_tab.pack(pady=5, expand=True,fill="both")
         extras_tab = ExtrasTab(master=notebook.tab("Extras"), event=status_update_event)
         extras_tab.pack(pady=5, expand=True,fill="both")
-    
-    def configure_grid(self):
-        self.columnconfigure(0, weight=1)
-        self.columnconfigure(1, weight=1)
-        self.columnconfigure(2, weight=3)
-        self.columnconfigure(3, weight=1)
-        self.columnconfigure(4, weight=1)
-        self.rowconfigure(0, weight=1)
-        self.rowconfigure(2, weight=1)
-    
     
     def update_status_label(self, text:str):
         self.status_label.configure(text=text)
@@ -121,7 +109,7 @@ class ProjectSetupTab(ctk.CTkFrame):
             # Split the project input into base and subfolder names
             project_parts = project_input.split('/')
             project_base = project_parts[0]
-            project_subfolder = project_parts[1] if len(project_parts) > 1 else None
+            project_subfolder = project_parts[1] if len(project_parts) > 1 else ""
 
             # Determine the base directory based on the folder structure option
             base_dir = os.path.expanduser(f"~\\Pictures\\Loras")
@@ -617,9 +605,7 @@ class ExtrasTab(ctk.CTkScrollableFrame):
             
         analyze_tags = ExtrasDataset(event=self.event, top_tags_event=self.top_tags_event)
         
-        analyze_tags.analyze_tags(images_folder=dataset_dir, show_top_tags=self.show_tags_entry.get())
+        analyze_tags.analyze_tags(images_folder=dataset_dir, show_top_tags_text=self.show_tags_entry.get())
     
     def on_top_tags(self,text:str):
         self.top_tags_label.configure(text=text)
-        
-        

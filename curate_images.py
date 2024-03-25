@@ -124,7 +124,8 @@ class CurateImages:
             dataset.app_config.sidebar_groups = sidebar_groups
             fo.config.database_uri = FIFTYONE_DATABASE_URI
             dataset.save()
-            session = fo.launch_app(dataset, desktop=False)
+            session = fo.launch_app(dataset=dataset, desktop=False)
+            
             self.event.emit(f"Session launched:\n{session}")
             print(f"Session launched:\n{session}")
 
