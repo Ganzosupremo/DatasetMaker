@@ -4,7 +4,6 @@ import subprocess
 from collections import Counter
 from event import Event
 
-
 class DatasetTagger:    
     def __init__(self, event, show_tags_event) -> None:
         self.event: Event = event
@@ -15,7 +14,7 @@ class DatasetTagger:
                              debug:bool=False,recursive:bool=False) -> None:
         
         # Construct the command to run the script
-        script_path = os.path.join("sd-scripts", "finetune", "make_captions.py")
+        script_path = os.path.join("make_captions.py")
 
         if batch_size == "":
             batch_size = "8"
@@ -50,7 +49,7 @@ class DatasetTagger:
                              caption_extension:str=".txt",
                              tag_threshold:float=0.35) -> None:
         
-        script_path = os.path.join("sd-scripts","finetune", "tag_images_by_wd14_tagger.py")
+        script_path = os.path.join("tag_images_by_wd14_tagger.py")
         print(script_path)
         
         if batch_size == "":
@@ -60,7 +59,6 @@ class DatasetTagger:
         
         command = [
         "python", script_path, train_data_dir,
-        "train_data_dir", train_data_dir,
         "--batch_size", batch_size,
         "--max_data_loader_n_workers", workers,
         "--caption_extention", caption_extension,
@@ -68,6 +66,7 @@ class DatasetTagger:
         ]
         
         command.append("--remove_underscore")
+        command.append("--onnx")
         
         if force_download:
             command.append("--force_download")

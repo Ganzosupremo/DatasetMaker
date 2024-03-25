@@ -1,3 +1,3 @@
 @echo off 
-cmd /k ".\.venv\Scripts\activate & python main.py"
+cmd /k ".\.conda\Scripts\activate & python main.py"
 pause

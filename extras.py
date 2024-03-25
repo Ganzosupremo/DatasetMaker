@@ -3,6 +3,20 @@ import os
 import glob
 from event import Event
 
+IMAGE_EXTENSIONS = [".png", ".jpg", ".jpeg", ".webp", ".bmp", ".PNG", ".JPG", ".JPEG", ".WEBP", ".BMP"]
+
+def glob_images_pathlib(dir_path, recursive):
+    image_paths = []
+    if recursive:
+        for ext in IMAGE_EXTENSIONS:
+            image_paths += list(dir_path.rglob("*" + ext))
+    else:
+        for ext in IMAGE_EXTENSIONS:
+            image_paths += list(dir_path.glob("*" + ext))
+    image_paths = list(set(image_paths))
+    image_paths.sort()
+    return image_paths
+
 
 class ExtrasDataset:
     def __init__(self, event:Event, top_tags_event:Event) -> None:
@@ -39,13 +53,14 @@ class ExtrasDataset:
         all_files = glob.glob(os.path.join(images_folder, '*'))
 
         for file_path in all_files:
+            for ext in IMAGE_EXTENSIONS:
             # Check if the file is not an image (png, jpg, jpeg)
-            if not file_path.lower().endswith(('.png', '.jpg', '.jpeg')):
-                # Delete the file
-                try:
-                    os.remove(file_path)
-                except Exception as e:
-                    self.event.emit(f"Error deleting file {file_path}:\n{e}")
+                if not file_path.lower().endswith(ext):
+                    # Delete the file
+                    try:
+                        os.remove(file_path)
+                    except Exception as e:
+                        self.event.emit(f"Error deleting file {file_path}:\n{e}")
         self.event.emit("Folder Cleared!!")
 
     
