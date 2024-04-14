@@ -84,7 +84,8 @@ class ProjectSetupTab(ctk.CTkFrame):
         ctk.CTkLabel(master, text="Project Setup", font=title_font).pack(pady=15, expand=True, fill="both")
         ctk.CTkLabel(master, font=normal_font, text="Welcome! This app is a modified version of the Dataset Maker by Hollowstrawberry."
                     "\nThis app is designed to run on the local machine instead of Google Drive, for the ones that do not like working with Drive.\n"
-                    "Let's begin at the beginning, set up the name of your project, the app will save the project on your Pictures directory under a folder called 'Loras'.").pack(pady=10, expand=True, fill="both")
+                    "Let's begin at the beginning, set up the name of your project, the app will save the project on your Pictures directory under a folder called 'Loras'."
+                    "\nYou can also specify a project subfolder to separate diffent characters, styles, etc, like this: project_name/subfolder_name.").pack(pady=10, expand=True, fill="both")
 
         self.project_name_entry = ctk.CTkEntry(master, font=normal_font, width=250, height=36, corner_radius=10, border_color='green', border_width=2, placeholder_text="Project Name")
         self.project_name_entry.pack(pady=5)
@@ -302,7 +303,7 @@ class ScrollableTagImagesTab(ctk.CTkScrollableFrame):
         second_frame.pack(pady=5,expand=True, fill="x")
         
         ctk.CTkLabel(second_frame, font=normal_font, 
-                     text="These options only work on the Anime Tags Option.").pack(pady=5)
+                     text="These options only work on the Anime Tags Option.\nBelow you can blacklist tags that you DON'T want in your dataset. Leave empty for default blacklisted tags.").pack(pady=5)
         self.blacklist_tags_entry = ctk.CTkEntry(second_frame,
                                                  width=250,
                                                  height=30,
@@ -566,7 +567,7 @@ class ExtrasTab(ctk.CTkScrollableFrame):
         self.show_tags_entry = ctk.CTkEntry(master=first_frame,
                                             corner_radius=10,
                                             font=normal_font,
-                                            placeholder_text="Show Top Tags...")
+                                            placeholder_text="input how many tags you want the UI to display at once, default is 50 tags...")
         self.show_tags_entry.pack(pady=10,fill="x")
 
     def set_second_frame(self):

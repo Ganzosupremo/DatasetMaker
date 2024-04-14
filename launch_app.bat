@@ -1,5 +1,3 @@
 @echo off
-cmd /k ".\.venv\Scripts\activate"
-cmd /k "pip install -r requirements.txt"
-cmd /k "python main.py"
+cmd /k ".\.venv\Scripts\activate & python main.py"
 pause

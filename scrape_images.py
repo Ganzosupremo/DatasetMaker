@@ -17,7 +17,7 @@ class ImageScraper:
         user_agent = "Mozilla/5.0 AppleWebKit/537.36 (KHTML, like Gecko; compatible; Googlebot/2.1; +http://www.google.com/bot.html) Chrome/93.0.4577.83 Safari/537.36"
         
         total_limit:int = 800
-        if total_image_limit != "":
+        if total_image_limit != "" or total_image_limit.isnumeric():
             total_limit:int = int(total_image_limit)
         
         supported_types = (".png", ".jpg", ".jpeg")
