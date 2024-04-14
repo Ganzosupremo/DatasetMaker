@@ -3,7 +3,7 @@
 
 ## Installation
 
- You need to install [python 3.10.](https://www.python.org/downloads/release/python-3109/) in order for this program to work.
+ You need to install [python 3.10.9](https://www.python.org/downloads/release/python-3109/) in order for this program to work.
 
  Then download this repo, you can clone it https://github.com/Ganzosupremo/DatasetMaker.git. Or download it as a zip file.
 
@@ -17,7 +17,7 @@ This app has 5 different tabs. I'll explain what each tab does, you can get more
 
 ### Project Setup
 
-This tab is for setting up your project name, this will create a folder with the name of your chosing at the Pictures directory inside a Lora folder. The structure is like so ./Pictures/Loras/project_name. Btw you can specify subfolders with the same project name like so: ./Pictures/Loras/project_name/subfolder_name. The images will be saved in this subfolder.
+This tab is for setting up your project name, this will create a folder with the name of your chosing at the Pictures directory inside a Lora folder. The structure is like so ./Pictures/Loras/project_name. Btw you can specify subfolders with the same project name like so: /project_name/subfolder_name. The images will be saved in this subfolder.
 
 ### Scrape Images
 
@@ -34,7 +34,9 @@ Next, we'll look for duplicated images and delete them from the dataset, you can
 Now, we'll tag the images, you can use waifu diffusion and blip captioning, depending on the type of your images.
 Waifu diffusion is used for anime and blip captioning is usually used for photos.
 You can specify the batch size on the first field.
+
 In the second field you can specify how many tags will be showed to you in the UI after tagging, put 0 for every single one.
+
 In the third field, you can blacklist the tags you don't want in your images, leave empty for default blacklisted tags.
 With the slider you can adjust the level of confidence to add a tag, higher confidence means more tags.
 
