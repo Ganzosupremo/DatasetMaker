@@ -1,3 +1,5 @@
-@echo off 
-cmd /k ".\.conda\Scripts\activate & python main.py"
+@echo off
+cmd /k ".\.venv\Scripts\activate"
+cmd /k "pip install -r requirements.txt"
+cmd /k "python main.py"
 pause

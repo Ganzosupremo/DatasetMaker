@@ -10,7 +10,7 @@ from curate_images import CurateImages
 from extras import ExtrasDataset
 from scrape_images import ImageScraper
 from caption_dataset import DatasetTagger
-from event import Event
+from utils import Event
 
 ctk.set_default_color_theme("green")
 ctk.set_appearance_mode("system")
@@ -143,7 +143,7 @@ class ScrapeImagesTab(ctk.CTkFrame):
     def __init__(self, master: Any, event:Event,width: int = 200, height: int = 200, corner_radius: int | str | None = None, border_width: int | str | None = None, bg_color: str | Tuple[str, str] = "transparent", fg_color: str | Tuple[str, str] | None = None, border_color: str | Tuple[str, str] | None = None, background_corner_colors: Tuple[str | Tuple[str, str]] | None = None, overwrite_preferred_drawing_method: str | None = None, **kwargs):
         super().__init__(master, width, height, corner_radius, border_width, bg_color, fg_color, border_color, background_corner_colors, overwrite_preferred_drawing_method, **kwargs)
         ctk.CTkLabel(master, text="Image Scraping",font=title_font).pack(pady=15, expand=True, fill="both")
-        text:str = "We will grab images from the popular anime gallery Gelbooru.\nImages are sorted by tags, including poses, scenes, character traits, character names, artists, etc.\nIf you instead want to use your own images, upload them to Pictures/Loras/project_name/dataset folder.\nUp to 1000 images may be downloaded by this step in just one minute. Remember, with great power, comes great responsability.\n\nYour target tags should include the relevant tags for your character/concept/artstyle, and exclude undesired tags (for example, explicit images may affect learning).\nSeparate words with underscores, separate tags with spaces, and use - to exclude a tag. You can also include a minimum score: score:>10"
+        text:str = "We will grab images from the popular anime gallery Gelbooru.\nImages are sorted by tags, including poses, scenes, character traits, character names, artists, etc.\nIf you instead want to use your own images, Copy them to Pictures/Loras/project_name/dataset folder.\nUp to 1000 images may be downloaded by this step in just one minute. Remember, with great power, comes great responsability.\n\nYour target tags should include the relevant tags for your character/concept/artstyle, \nand exclude undesired tags (for example, explicit images may affect learning).\nSeparate words with underscores, separate tags with spaces, and use - to exclude a tag. You can also include a minimum score: score:>10"
 
         self.event:Event = event
         ctk.CTkLabel(master, text=text,height=32,font=normal_font, compound="left").pack(pady=20, expand=True)

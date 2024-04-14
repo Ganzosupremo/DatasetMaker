@@ -7,7 +7,7 @@ import fiftyone as fo
 import fiftyone.zoo as foz
 from fiftyone import ViewField as F
 from sklearn.metrics.pairwise import cosine_similarity
-from event import Event
+from utils import Event
 
 dataset: fo.Dataset
 session: fo.Session

@@ -7,7 +7,7 @@ from pathlib import Path
 # sys.path.append("sd-scripts/library")
 
 # import cv2
-import torch as torch
+import torch
 from huggingface_hub import hf_hub_download
 from PIL import Image
 from tqdm import tqdm
@@ -16,6 +16,8 @@ import numpy as np
 import extras as train_util
 
 import cv2 as cv2
+
+from utils import TaggerArgs
 # from wd14 tagger
 IMAGE_SIZE = 448
 
@@ -296,6 +298,232 @@ def main(args):
 
     print("done!")
 
+# The same as main() but can be called without the need to use command-line arguments
+def start(tagger:TaggerArgs):
+    
+    if tagger.general_threshold is 0.0:
+        tagger.general_threshold = tagger.thresh
+    if tagger.character_threshold is 0.0:
+        tagger.character_threshold = tagger.thresh
+    
+    caption_extension=".txt"
+    if tagger.caption_extention is not None:
+       caption_extension = tagger.caption_extention
+    
+    if not os.path.exists(tagger.model_dir) or tagger.force_download:
+        print(f"downloading wd14 tagger model from hf_hub. id: {tagger.repo_id}")
+        files = FILES
+        if tagger.use_onnx:
+            files += FILES_ONNX
+        for file in files:
+            hf_hub_download(tagger.repo_id, file, cache_dir=tagger.model_dir, force_download=True, force_filename=file)
+        for file in SUB_DIR_FILES:
+            hf_hub_download(
+                tagger.repo_id,
+                file,
+                subfolder=SUB_DIR,
+                cache_dir=os.path.join(tagger.model_dir, SUB_DIR),
+                force_download=True,
+                force_filename=file,
+            )
+    else:
+        print("using existing wd14 tagger model")
+
+    # 画像を読み込む
+    if tagger.use_onnx:
+        import onnx
+        import onnxruntime as ort
+
+        onnx_path = f"{tagger.model_dir}/model.onnx"
+        print("Running wd14 tagger with onnx")
+        print(f"loading onnx model: {onnx_path}")
+
+        if not os.path.exists(onnx_path):
+            raise Exception(
+                f"onnx model not found: {onnx_path}, please redownload the model with --force_download"
+                + " / onnxモデルが見つかりませんでした。--force_downloadで再ダウンロードしてください"
+            )
+
+        model = onnx.load(onnx_path)
+        input_name = model.graph.input[0].name
+        try:
+            batch_size = model.graph.input[0].type.tensor_type.shape.dim[0].dim_value
+        except:
+            batch_size = model.graph.input[0].type.tensor_type.shape.dim[0].dim_param
+
+        if tagger.batch_size != batch_size and type(batch_size) != str:
+            # some rebatch model may use 'N' as dynamic axes
+            print(
+                f"Batch size {tagger.batch_size} doesn't match onnx model batch size {batch_size}, use model batch size {batch_size}"
+            )
+            tagger.batch_size = batch_size
+
+        del model
+
+        ort_sess = ort.InferenceSession(
+            onnx_path,
+            providers=["CUDAExecutionProvider"]
+            if "CUDAExecutionProvider" in ort.get_available_providers()
+            else ["CPUExecutionProvider"],
+        )
+    else:
+        # from tensorflow.keras.models import load_model
+        import keras as kr
+        model = kr.layers.TFSMLayer(f"{tagger.model_dir}", call_endpoint="serving_default")
+        
+        # model = load_model(f"{args.model_dir}")
+
+    # label_names = pd.read_csv("2022_0000_0899_6549/selected_tags.csv")
+    # 依存ライブラリを増やしたくないので自力で読むよ
+
+    with open(os.path.join(tagger.model_dir, CSV_FILE), "r", encoding="utf-8") as f:
+        reader = csv.reader(f)
+        l = [row for row in reader]
+        header = l[0]  # tag_id,name,category,count
+        rows = l[1:]
+    assert header[0] == "tag_id" and header[1] == "name" and header[2] == "category", f"unexpected csv format: {header}"
+
+    general_tags = [row[1] for row in rows[1:] if row[2] == "0"]
+    character_tags = [row[1] for row in rows[1:] if row[2] == "4"]
+
+    # 画像を読み込む
+
+    train_data_dir_path = Path(tagger.train_data_dir)
+    image_paths = train_util.glob_images_pathlib(train_data_dir_path, tagger.recursive)
+    print(f"found {len(image_paths)} images.")
+
+    tag_freq = {}
+
+    caption_separator = tagger.caption_separator
+    stripped_caption_separator = caption_separator.strip()
+    undesired_tags = set(tagger.undesired_tags.split(stripped_caption_separator))
+
+    def run_batch(path_imgs):
+        imgs = np.array([im for _, im in path_imgs])
+
+        if tagger.use_onnx:
+            if len(imgs) < tagger.batch_size:
+                imgs = np.concatenate([imgs, np.zeros((tagger.batch_size - len(imgs), IMAGE_SIZE, IMAGE_SIZE, 3))], axis=0)
+            probs = ort_sess.run(None, {input_name: imgs})[0]  # onnx output numpy
+            probs = probs[: len(path_imgs)]
+        else:
+            probs = model(imgs, training=False)
+            probs = probs.numpy()
+
+        for (image_path, _), prob in zip(path_imgs, probs):
+            # 最初の4つはratingなので無視する
+            # # First 4 labels are actually ratings: pick one with argmax
+            # ratings_names = label_names[:4]
+            # rating_index = ratings_names["probs"].argmax()
+            # found_rating = ratings_names[rating_index: rating_index + 1][["name", "probs"]]
+
+            # それ以降はタグなのでconfidenceがthresholdより高いものを追加する
+            # Everything else is tags: pick any where prediction confidence > threshold
+            combined_tags = []
+            general_tag_text = ""
+            character_tag_text = ""
+            for i, p in enumerate(prob[4:]):
+                if i < len(general_tags) and p >= tagger.general_threshold:
+                    tag_name = general_tags[i]
+                    if tagger.remove_underscore and len(tag_name) > 3:  # ignore emoji tags like >_< and ^_^
+                        tag_name = tag_name.replace("_", " ")
+
+                    if tag_name not in undesired_tags:
+                        tag_freq[tag_name] = tag_freq.get(tag_name, 0) + 1
+                        general_tag_text += caption_separator + tag_name
+                        combined_tags.append(tag_name)
+                elif i >= len(general_tags) and p >= tagger.character_threshold:
+                    tag_name = character_tags[i - len(general_tags)]
+                    if tagger.remove_underscore and len(tag_name) > 3:
+                        tag_name = tag_name.replace("_", " ")
+
+                    if tag_name not in undesired_tags:
+                        tag_freq[tag_name] = tag_freq.get(tag_name, 0) + 1
+                        character_tag_text += caption_separator + tag_name
+                        combined_tags.append(tag_name)
+
+            # 先頭のカンマを取る
+            if len(general_tag_text) > 0:
+                general_tag_text = general_tag_text[len(caption_separator) :]
+            if len(character_tag_text) > 0:
+                character_tag_text = character_tag_text[len(caption_separator) :]
+
+            caption_file = os.path.splitext(image_path)[0] + caption_extension
+
+            tag_text = caption_separator.join(combined_tags)
+
+            if tagger.append_tags:
+                # Check if file exists
+                if os.path.exists(caption_file):
+                    with open(caption_file, "rt", encoding="utf-8") as f:
+                        # Read file and remove new lines
+                        existing_content = f.read().strip("\n")  # Remove newlines
+
+                    # Split the content into tags and store them in a list
+                    existing_tags = [tag.strip() for tag in existing_content.split(stripped_caption_separator) if tag.strip()]
+
+                    # Check and remove repeating tags in tag_text
+                    new_tags = [tag for tag in combined_tags if tag not in existing_tags]
+
+                    # Create new tag_text
+                    tag_text = caption_separator.join(existing_tags + new_tags)
+
+            with open(caption_file, "wt", encoding="utf-8") as f:
+                f.write(tag_text + "\n")
+                if tagger.debug:
+                    print(f"\n{image_path}:\n  Character tags: {character_tag_text}\n  General tags: {general_tag_text}")
+
+    # 読み込みの高速化のためにDataLoaderを使うオプション
+    if tagger.max_data_loader_n_workers is not None:
+        dataset = ImageLoadingPrepDataset(image_paths)
+        data = torch.utils.data.DataLoader(
+            dataset,
+            batch_size=batch_size,
+            shuffle=False,
+            num_workers=tagger.max_data_loader_n_workers,
+            collate_fn=collate_fn_remove_corrupted,
+            drop_last=False,
+        )
+    else:
+        data = [[(None, ip)] for ip in image_paths]
+
+    b_imgs = []
+    for data_entry in tqdm(data, smoothing=0.0):
+        for data in data_entry:
+            if data is None:
+                continue
+
+            image, image_path = data
+            if image is not None:
+                image = image.detach().numpy()
+            else:
+                try:
+                    image = Image.open(image_path)
+                    if image.mode != "RGB":
+                        image = image.convert("RGB")
+                    image = preprocess_image(image)
+                except Exception as e:
+                    print(f"Could not load image path / 画像を読み込めません: {image_path}, error: {e}")
+                    continue
+            b_imgs.append((image_path, image))
+
+            if len(b_imgs) >= tagger.batch_size:
+                b_imgs = [(str(image_path), image) for image_path, image in b_imgs]  # Convert image_path to string
+                run_batch(b_imgs)
+                b_imgs.clear()
+
+    if len(b_imgs) > 0:
+        b_imgs = [(str(image_path), image) for image_path, image in b_imgs]  # Convert image_path to string
+        run_batch(b_imgs)
+
+    if tagger.frequency_tags:
+        sorted_tags = sorted(tag_freq.items(), key=lambda x: x[1], reverse=True)
+        print("\nTag frequencies:")
+        for tag, freq in sorted_tags:
+            print(f"{tag}: {freq}")
+
+    print("done!")
+
 
 def setup_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser()
@@ -372,6 +600,7 @@ if __name__ == "__main__":
     parser = setup_parser()
 
     args = parser.parse_args()
+    print(args.remove_underscore)
 
     # スペルミスしていたオプションを復元する
     if args.caption_extention is not None:

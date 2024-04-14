@@ -1,7 +1,7 @@
 import asyncio
 import requests
 import os
-from event import Event
+from utils import Event
 
 max_resolution:int = 3072
 semaphore = asyncio.Semaphore(10)

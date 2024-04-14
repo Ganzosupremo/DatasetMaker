@@ -1,7 +1,7 @@
 from collections import Counter
 import os
 import glob
-from event import Event
+from utils import Event
 
 IMAGE_EXTENSIONS = [".png", ".jpg", ".jpeg", ".webp", ".bmp", ".PNG", ".JPG", ".JPEG", ".WEBP", ".BMP"]
 
@@ -23,7 +23,7 @@ class ExtrasDataset:
         self.event = event
         self.top_tags_event = top_tags_event
     
-    def analyze_tags(self, images_folder:str, show_top_tags_text:str="50"):
+    def analyze_tags(self, images_folder:str, show_top_tags_text:str=""):
         if show_top_tags_text == "":
             show_top_tags_text = "50"
             

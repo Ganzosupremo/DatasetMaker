@@ -1,5 +1,5 @@
 import os
-from event import Event
+from utils import Event
 
 class DatasetTagCurator:
     def __init__(self, event:Event, show_modified_tags_event:Event) -> None:
